@@ -1,13 +1,16 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Feature;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class TestDatabaseGuardTest extends TestCase
 {
-    public function test_suite_runs_against_a_test_database(): void
+    public function test_tests_use_a_dedicated_test_database(): void
     {
-        $this->assertStringEndsWith('_test', (string) getenv('DB_DATABASE'));
+        $connection = config('database.default');
+
+        $this->assertSame('mysql', $connection);
+        $this->assertStringEndsWith('_test', (string) config("database.connections.{$connection}.database"));
     }
 }
