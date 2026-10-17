@@ -7,6 +7,9 @@ use App\Models\Concerns\HasAuditUsers;
 use App\Models\Concerns\HasReviews;
 use App\Models\Concerns\HasSourceReferences;
 use App\Models\Concerns\HasWorkflowStatus;
+use App\Models\Concerns\ScopesVisibility;
+use App\Services\Search\ArabicNormalizer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +25,7 @@ class Book extends Model
     use HasReviews;
     use HasSourceReferences;
     use HasWorkflowStatus;
+    use ScopesVisibility;
     use SoftDeletes;
 
     protected $fillable = [
@@ -33,6 +37,26 @@ class Book extends Model
         'description',
         'notes',
     ];
+
+    /** بحث بعنوان الكتاب أو أحد عناوينه الأخرى، يتجاهل التشكيل ويقبل الكلمات بأي ترتيب. */
+    public function scopeSearchTitle(Builder $query, string $term): Builder
+    {
+        $normalizer = app(ArabicNormalizer::class);
+        $tokens = $normalizer->tokens($term);
+        if ($tokens === []) {
+            // نص لا يحوي حرفًا ولا رقمًا (مثل %) لا يطابق شيئًا؛ لا يُعامل كأنه بلا تصفية
+            return $query->whereRaw('1 = 0');
+        }
+
+        foreach ($tokens as $token) {
+            $like = '%'.$normalizer->escapeLike($token).'%';
+            $query->where(fn (Builder $q) => $q
+                ->where('title_search', 'like', $like)
+                ->orWhereHas('alternateTitles', fn (Builder $t) => $t->where('title_search', 'like', $like)));
+        }
+
+        return $query;
+    }
 
     public function author(): BelongsTo
     {

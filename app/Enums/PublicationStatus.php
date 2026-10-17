@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasOptions;
+
 enum PublicationStatus: string
 {
+    use HasOptions;
+
     case Unpublished = 'unpublished';
     case Published = 'published';
 

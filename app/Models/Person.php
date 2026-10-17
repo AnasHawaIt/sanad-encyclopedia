@@ -7,6 +7,8 @@ use App\Models\Concerns\HasAuditUsers;
 use App\Models\Concerns\HasReviews;
 use App\Models\Concerns\HasSourceReferences;
 use App\Models\Concerns\HasWorkflowStatus;
+use App\Models\Concerns\ScopesVisibility;
+use App\Services\Search\ArabicNormalizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +25,7 @@ class Person extends Model
     use HasReviews;
     use HasSourceReferences;
     use HasWorkflowStatus;
+    use ScopesVisibility;
     use SoftDeletes;
 
     // لا يُشتق الاسم من Person (سيصير people)
@@ -46,6 +49,29 @@ class Person extends Model
     public function scopeCanonical(Builder $query): Builder
     {
         return $query->whereNull('merged_into_person_id');
+    }
+
+    /**
+     * بحث بالاسم يتجاهل التشكيل وصور الهمزات والتاء المربوطة. كل كلمة من الاستعلام يجب أن تظهر
+     * في الاسم أو في إحدى صيغه البديلة، بأي ترتيب.
+     */
+    public function scopeSearchName(Builder $query, string $term): Builder
+    {
+        $normalizer = app(ArabicNormalizer::class);
+        $tokens = $normalizer->tokens($term);
+        if ($tokens === []) {
+            // نص لا يحوي حرفًا ولا رقمًا (مثل %) لا يطابق شيئًا؛ لا يُعامل كأنه بلا تصفية
+            return $query->whereRaw('1 = 0');
+        }
+
+        foreach ($tokens as $token) {
+            $like = '%'.$normalizer->escapeLike($token).'%';
+            $query->where(fn (Builder $q) => $q
+                ->where('name_search', 'like', $like)
+                ->orWhereHas('nameVariants', fn (Builder $v) => $v->where('name_search', 'like', $like)));
+        }
+
+        return $query;
     }
 
     public function mergedInto(): BelongsTo

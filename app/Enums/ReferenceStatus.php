@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasOptions;
+
 enum ReferenceStatus: string
 {
+    use HasOptions;
+
     case Unverified = 'unverified';
     case Verified = 'verified';
     case Rejected = 'rejected';

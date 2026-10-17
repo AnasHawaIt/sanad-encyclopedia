@@ -12,6 +12,7 @@ use App\Models\Person;
 use App\Models\PersonMergeRequest;
 use App\Models\PersonRelation;
 use App\Models\Source;
+use App\Models\SubjectCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
@@ -39,6 +40,7 @@ class MorphMapServiceProvider extends ServiceProvider
             'asnad_node' => AsnadNode::class,
             'source' => Source::class,
             'attachment' => Attachment::class,
+            'subject_category' => SubjectCategory::class,
         ]);
     }
 }

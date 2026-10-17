@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasOptions;
+
 enum VerificationStatus: string
 {
+    use HasOptions;
+
     case Draft = 'draft';
     case InReview = 'in_review';
     case NeedsRevision = 'needs_revision';
