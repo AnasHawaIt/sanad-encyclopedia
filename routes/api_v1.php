@@ -1,9 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AsnadAnalysisController;
+use App\Http\Controllers\Api\V1\AsnadController;
+use App\Http\Controllers\Api\V1\AsnadNodeController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookController;
 use App\Http\Controllers\Api\V1\BookEditionController;
+use App\Http\Controllers\Api\V1\IjazaController;
+use App\Http\Controllers\Api\V1\LinkController;
 use App\Http\Controllers\Api\V1\LookupController;
+use App\Http\Controllers\Api\V1\LookupSetController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PersonController;
 use App\Http\Controllers\Api\V1\PersonTeacherController;
@@ -90,20 +96,21 @@ Route::prefix('v1')->group(function () {
         Route::middleware('can:sources.view')->group(function () {
             Route::get('sources', [SourceController::class, 'index'])->name('sources.index');
             Route::get('sources/{source}', [SourceController::class, 'show'])->whereNumber('source')->name('sources.show');
-            Route::get('persons/{entity}/references', [ReferenceController::class, 'index'])->defaults('type', 'person')->whereNumber('entity')->name('persons.references.index');
-            Route::get('books/{entity}/references', [ReferenceController::class, 'index'])->defaults('type', 'book')->whereNumber('entity')->name('books.references.index');
+            foreach (['persons' => 'person', 'books' => 'book', 'asnads' => 'asnad', 'ijazas' => 'ijaza'] as $prefix => $type) {
+                Route::get("{$prefix}/{entity}/references", [ReferenceController::class, 'index'])->defaults('type', $type)->whereNumber('entity')->name("{$prefix}.references.index");
+            }
         });
         Route::post('sources', [SourceController::class, 'store'])->middleware('can:sources.create')->name('sources.store');
         Route::middleware('can:sources.update')->group(function () {
             Route::put('sources/{source}', [SourceController::class, 'update'])->whereNumber('source')->name('sources.update');
-            foreach (['persons' => 'person', 'books' => 'book'] as $prefix => $type) {
+            foreach (['persons' => 'person', 'books' => 'book', 'asnads' => 'asnad', 'ijazas' => 'ijaza'] as $prefix => $type) {
                 Route::post("{$prefix}/{entity}/references", [ReferenceController::class, 'store'])->defaults('type', $type)->whereNumber('entity')->name("{$prefix}.references.store");
                 Route::put("{$prefix}/{entity}/references/{reference}", [ReferenceController::class, 'update'])->defaults('type', $type)->whereNumber(['entity', 'reference'])->name("{$prefix}.references.update");
                 Route::delete("{$prefix}/{entity}/references/{reference}", [ReferenceController::class, 'destroy'])->defaults('type', $type)->whereNumber(['entity', 'reference'])->name("{$prefix}.references.destroy");
             }
         });
         Route::middleware('can:reviews.decide')->group(function () {
-            foreach (['persons' => 'person', 'books' => 'book'] as $prefix => $type) {
+            foreach (['persons' => 'person', 'books' => 'book', 'asnads' => 'asnad', 'ijazas' => 'ijaza'] as $prefix => $type) {
                 Route::put("{$prefix}/{entity}/references/{reference}/status", [ReferenceController::class, 'status'])->defaults('type', $type)->whereNumber(['entity', 'reference'])->name("{$prefix}.references.status");
             }
         });
@@ -111,5 +118,54 @@ Route::prefix('v1')->group(function () {
             Route::delete('sources/{source}', [SourceController::class, 'destroy'])->whereNumber('source')->name('sources.destroy');
             Route::post('sources/{source}/restore', [SourceController::class, 'restore'])->whereNumber('source')->name('sources.restore');
         });
+
+        // ---- المرحلة 5: الأسانيد والإجازات ----
+
+        Route::middleware('can:lookups.view')->group(function () {
+            Route::get('lookups/sets/{set}', [LookupSetController::class, 'index'])->name('lookups.sets.index');
+        });
+        Route::middleware('can:lookups.manage')->group(function () {
+            Route::post('lookups/sets/{set}', [LookupSetController::class, 'store'])->name('lookups.sets.store');
+            Route::put('lookups/sets/{set}/{id}', [LookupSetController::class, 'update'])->whereNumber('id')->name('lookups.sets.update');
+        });
+
+        Route::middleware('can:asnads.view')->group(function () {
+            Route::get('asnads', [AsnadController::class, 'index'])->name('asnads.index');
+            Route::get('asnads/summary', [AsnadAnalysisController::class, 'summary'])->name('asnads.summary');
+            Route::get('asnads/{asnad}', [AsnadController::class, 'show'])->whereNumber('asnad')->name('asnads.show');
+            Route::get('asnads/{asnad}/counts', [AsnadAnalysisController::class, 'counts'])->whereNumber('asnad')->name('asnads.counts');
+        });
+        Route::middleware('can:asnads.create')->group(function () {
+            Route::post('asnads', [AsnadController::class, 'store'])->name('asnads.store');
+            Route::post('asnads/suggest-split', [AsnadAnalysisController::class, 'suggestSplit'])->name('asnads.suggest-split');
+        });
+        Route::middleware('can:asnads.update')->group(function () {
+            Route::put('asnads/{asnad}', [AsnadController::class, 'update'])->whereNumber('asnad')->name('asnads.update');
+            Route::post('asnads/{asnad}/nodes', [AsnadNodeController::class, 'store'])->whereNumber('asnad')->name('asnads.nodes.store');
+            Route::put('asnads/{asnad}/nodes/order', [AsnadNodeController::class, 'reorder'])->whereNumber('asnad')->name('asnads.nodes.reorder');
+            Route::put('asnads/{asnad}/nodes/{node}', [AsnadNodeController::class, 'update'])->whereNumber(['asnad', 'node'])->name('asnads.nodes.update');
+            Route::post('asnads/{asnad}/nodes/{node}/move', [AsnadNodeController::class, 'move'])->whereNumber(['asnad', 'node'])->name('asnads.nodes.move');
+            Route::delete('asnads/{asnad}/nodes/{node}', [AsnadNodeController::class, 'destroy'])->whereNumber(['asnad', 'node'])->name('asnads.nodes.destroy');
+        });
+        Route::middleware('can:asnads.delete')->group(function () {
+            Route::delete('asnads/{asnad}', [AsnadController::class, 'destroy'])->whereNumber('asnad')->name('asnads.destroy');
+            Route::post('asnads/{asnad}/restore', [AsnadController::class, 'restore'])->whereNumber('asnad')->name('asnads.restore');
+        });
+
+        Route::middleware('can:ijazas.view')->group(function () {
+            Route::get('ijazas', [IjazaController::class, 'index'])->name('ijazas.index');
+            Route::get('ijazas/{ijaza}', [IjazaController::class, 'show'])->whereNumber('ijaza')->name('ijazas.show');
+        });
+        Route::post('ijazas', [IjazaController::class, 'store'])->middleware('can:ijazas.create')->name('ijazas.store');
+        Route::middleware('can:ijazas.update')->group(function () {
+            Route::put('ijazas/{ijaza}', [IjazaController::class, 'update'])->whereNumber('ijaza')->name('ijazas.update');
+            Route::put('ijazas/{ijaza}/asnads', [LinkController::class, 'ijazaAsnads'])->whereNumber('ijaza')->name('ijazas.asnads.sync');
+            Route::put('ijazas/{ijaza}/books', [LinkController::class, 'ijazaBooks'])->whereNumber('ijaza')->name('ijazas.books.sync');
+        });
+        Route::middleware('can:ijazas.delete')->group(function () {
+            Route::delete('ijazas/{ijaza}', [IjazaController::class, 'destroy'])->whereNumber('ijaza')->name('ijazas.destroy');
+            Route::post('ijazas/{ijaza}/restore', [IjazaController::class, 'restore'])->whereNumber('ijaza')->name('ijazas.restore');
+        });
+        Route::put('books/{book}/asnads', [LinkController::class, 'bookAsnads'])->middleware('can:books.update')->whereNumber('book')->name('books.asnads.sync');
     });
 });

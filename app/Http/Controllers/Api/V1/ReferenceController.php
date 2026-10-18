@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Sources\ReferenceRequest;
 use App\Http\Requests\Sources\ReferenceStatusRequest;
 use App\Http\Resources\ReferenceResource;
+use App\Models\Asnad;
 use App\Models\Book;
+use App\Models\Ijaza;
 use App\Models\Person;
 use App\Services\Sources\ReferenceService;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * مراجع علَم أو كتاب. النوع يأتي من المسار (persons|books)، والكيان يُجلب بقيد الرؤية:
+ * مراجع علَم أو كتاب أو سند أو إجازة. النوع يأتي من المسار (persons|books|asnads|ijazas)، والكيان يُجلب بقيد الرؤية:
  * سجل غير مرئي للمستخدم يعطي 404 فلا تُكشف مراجعه.
  */
 class ReferenceController extends Controller
@@ -69,6 +71,8 @@ class ReferenceController extends Controller
         $class = match ($request->route('type')) {
             'person' => Person::class,
             'book' => Book::class,
+            'asnad' => Asnad::class,
+            'ijaza' => Ijaza::class,
             default => abort(404),
         };
 

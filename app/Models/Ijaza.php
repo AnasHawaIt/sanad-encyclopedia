@@ -7,6 +7,9 @@ use App\Models\Concerns\HasAuditUsers;
 use App\Models\Concerns\HasReviews;
 use App\Models\Concerns\HasSourceReferences;
 use App\Models\Concerns\HasWorkflowStatus;
+use App\Models\Concerns\ScopesVisibility;
+use App\Services\Search\ArabicNormalizer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +24,7 @@ class Ijaza extends Model
     use HasReviews;
     use HasSourceReferences;
     use HasWorkflowStatus;
+    use ScopesVisibility;
     use SoftDeletes;
 
     protected $fillable = [
@@ -42,6 +46,26 @@ class Ijaza extends Model
     protected function casts(): array
     {
         return ['ijaza_date_gregorian' => 'date'];
+    }
+
+    /**
+     * بحث في نص الإجازة (الأصلي والمصحَّح معًا) بعد التطبيع. كل كلمة يجب أن ترد في النص بأي ترتيب.
+     * نستعمل LIKE لا FULLTEXT عمدًا: FULLTEXT في InnoDB يتجاهل الكلمات الأقصر من ثلاثة أحرف
+     * ولا يرى الصفوف قبل اعتماد المعاملة، وكلاهما يُسقط نتائج صحيحة في الأسماء العربية القصيرة.
+     */
+    public function scopeSearchText(Builder $query, string $term): Builder
+    {
+        $normalizer = app(ArabicNormalizer::class);
+        $tokens = $normalizer->tokens($term);
+        if ($tokens === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        foreach ($tokens as $token) {
+            $query->where('text_search', 'like', '%'.$normalizer->escapeLike($token).'%');
+        }
+
+        return $query;
     }
 
     public function type(): BelongsTo

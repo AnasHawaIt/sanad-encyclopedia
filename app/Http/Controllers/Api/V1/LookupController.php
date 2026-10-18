@@ -16,6 +16,7 @@ use App\Enums\VerificationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lookups\CategoryRequest;
 use App\Models\SubjectCategory;
+use App\Services\Asnad\ChainCounter;
 use App\Services\Audit\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,8 @@ class LookupController extends Controller
             'calendars' => Calendar::options(),
             'certainties' => Certainty::options(),
             'reference_statuses' => ReferenceStatus::options(),
+            // تعريف كل رقم يُعرض في الواجهات (الأسانيد): كل رقم يُعرض معه تعريفه
+            'count_definitions' => app(ChainCounter::class)->definitions(),
         ]]);
     }
 

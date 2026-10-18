@@ -7,12 +7,16 @@ use App\Models\AsnadNode;
 use App\Models\Attachment;
 use App\Models\Book;
 use App\Models\BookEdition;
+use App\Models\ChainRole;
 use App\Models\Ijaza;
+use App\Models\IjazaType;
 use App\Models\Person;
 use App\Models\PersonMergeRequest;
 use App\Models\PersonRelation;
+use App\Models\SanadType;
 use App\Models\Source;
 use App\Models\SubjectCategory;
+use App\Models\TransmissionMode;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +45,10 @@ class MorphMapServiceProvider extends ServiceProvider
             'source' => Source::class,
             'attachment' => Attachment::class,
             'subject_category' => SubjectCategory::class,
+            'ijaza_type' => IjazaType::class,
+            'sanad_type' => SanadType::class,
+            'chain_role' => ChainRole::class,
+            'transmission_mode' => TransmissionMode::class,
         ]);
     }
 }

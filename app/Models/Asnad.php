@@ -7,6 +7,9 @@ use App\Models\Concerns\HasAuditUsers;
 use App\Models\Concerns\HasReviews;
 use App\Models\Concerns\HasSourceReferences;
 use App\Models\Concerns\HasWorkflowStatus;
+use App\Models\Concerns\ScopesVisibility;
+use App\Services\Search\ArabicNormalizer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,10 +25,12 @@ class Asnad extends Model
     use HasReviews;
     use HasSourceReferences;
     use HasWorkflowStatus;
+    use ScopesVisibility;
     use SoftDeletes;
 
     protected $fillable = [
         'title',
+        'title_search',
         'sanad_type_id',
         'chain_text_original',
         'chain_text_search',
@@ -37,6 +42,23 @@ class Asnad extends Model
     protected function casts(): array
     {
         return ['count_from_seq' => 'integer', 'count_to_seq' => 'integer'];
+    }
+
+    /** بحث في عنوان السند ونصه الأصلي المطبَّع: يتجاهل التشكيل ويقبل الكلمات بأي ترتيب. */
+    public function scopeSearchText(Builder $query, string $term): Builder
+    {
+        $normalizer = app(ArabicNormalizer::class);
+        $tokens = $normalizer->tokens($term);
+        if ($tokens === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        foreach ($tokens as $token) {
+            $like = '%'.$normalizer->escapeLike($token).'%';
+            $query->where(fn (Builder $q) => $q->where('title_search', 'like', $like)->orWhere('chain_text_search', 'like', $like));
+        }
+
+        return $query;
     }
 
     public function type(): BelongsTo
