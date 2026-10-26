@@ -11,6 +11,10 @@ const items = ref([]);
 const loading = ref(true);
 const error = ref('');
 const q = ref('');
+const selected = ref([]);
+function compareSelected() {
+    router.push({ name: 'asnad-compare', query: { ids: selected.value.join(',') } });
+}
 const creating = reactive({ title: '', busy: false });
 
 async function load() {
@@ -60,9 +64,10 @@ onMounted(load);
             <p v-if="loading">جارٍ التحميل…</p>
             <p v-else-if="!items.length" class="def">لا أسانيد.</p>
             <table v-else class="list">
-                <thead><tr><th>العنوان</th><th>الرجال</th><th>الحالة</th><th></th></tr></thead>
+                <thead><tr><th></th><th>العنوان</th><th>الرجال</th><th>الحالة</th><th></th></tr></thead>
                 <tbody>
                     <tr v-for="a in items" :key="a.id">
+                        <td><input v-model="selected" type="checkbox" :value="a.id" :aria-label="`تحديد ${a.title || a.id}`" /></td>
                         <td>{{ a.title || `سند #${a.id}` }}</td>
                         <td>{{ a.counts?.persons_in_chain ?? '—' }}</td>
                         <td><span class="badge">{{ a.verification_status?.label }}</span></td>
@@ -70,6 +75,10 @@ onMounted(load);
                     </tr>
                 </tbody>
             </table>
+            <p v-if="items.length" class="row" style="margin-top: 0.75rem">
+                <button type="button" class="btn copper" :disabled="selected.length < 2" data-test="compare-btn" @click="compareSelected">قارن المحدد ({{ selected.length }})</button>
+                <span class="meta">اختر سندين على الأقل (حتى 20).</span>
+            </p>
         </section>
     </div>
 </template>

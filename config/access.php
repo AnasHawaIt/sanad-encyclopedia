@@ -5,11 +5,13 @@
  * يقرؤه RolesAndPermissionsSeeder ولا تُكتب أسماء الصلاحيات نصًّا في أي مكان آخر.
  * اسم الصلاحية = «المجموعة.الإجراء» مثل persons.update.
  */
-
 $crud = ['view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'أرشفة/حذف'];
 
 return [
     'admin_role' => 'admin',
+
+    // فصل المهام: من أرسل سجلًا للمراجعة أو طلب دمجًا لا يقرّره بنفسه. اجعلها true في .env لتجربة محلية بحساب واحد فقط.
+    'allow_self_approval' => (bool) env('SANAD_ALLOW_SELF_APPROVAL', false),
 
     // أدوار النظام: لا تُحذف ولا يُعاد تسميتها (يمكن تعديل صلاحياتها عدا admin).
     'protected_roles' => ['admin', 'researcher', 'reviewer', 'publisher', 'reader'],
@@ -24,7 +26,7 @@ return [
         'records' => ['label' => 'ظهور السجلات', 'actions' => ['view_unpublished' => 'رؤية غير المنشور']],
         'reviews' => ['label' => 'المراجعة', 'actions' => ['submit' => 'إرسال للمراجعة', 'decide' => 'قبول/رد المراجعة']],
         'publishing' => ['label' => 'النشر', 'actions' => ['publish' => 'نشر وإلغاء نشر']],
-        'merges' => ['label' => 'دمج الأعلام', 'actions' => ['request' => 'طلب دمج', 'approve' => 'اعتماد دمج', 'revert' => 'التراجع عن دمج']],
+        'merges' => ['label' => 'دمج الأعلام', 'actions' => ['view' => 'عرض طلبات الدمج', 'request' => 'طلب دمج', 'approve' => 'اعتماد دمج', 'revert' => 'التراجع عن دمج']],
         'exports' => ['label' => 'التصدير', 'actions' => ['create' => 'تصدير']],
         'audit' => ['label' => 'سجل التدقيق', 'actions' => ['view' => 'عرض']],
         'users' => ['label' => 'المستخدمون', 'actions' => ['view' => 'عرض', 'manage' => 'إدارة']],
@@ -42,12 +44,12 @@ return [
             'asnads.view', 'asnads.create', 'asnads.update',
             'sources.view', 'sources.create', 'sources.update',
             'lookups.view', 'records.view_unpublished', 'reviews.submit',
-            'merges.request', 'exports.create',
+            'merges.view', 'merges.request', 'exports.create',
         ]],
         'reviewer' => ['label' => 'مراجع', 'permissions' => [
             'persons.view', 'books.view', 'ijazas.view', 'asnads.view', 'sources.view',
             'lookups.view', 'records.view_unpublished', 'reviews.decide',
-            'merges.approve', 'audit.view', 'exports.create',
+            'merges.view', 'merges.approve', 'audit.view', 'exports.create',
         ]],
         'publisher' => ['label' => 'ناشر', 'permissions' => [
             'persons.view', 'books.view', 'ijazas.view', 'asnads.view', 'sources.view',

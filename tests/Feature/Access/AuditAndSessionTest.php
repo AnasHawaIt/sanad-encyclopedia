@@ -6,6 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Auth\SessionRevoker;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 use Tests\DatabaseTestCase;
 
 class AuditAndSessionTest extends DatabaseTestCase
@@ -32,7 +34,7 @@ class AuditAndSessionTest extends DatabaseTestCase
 
     public function test_logger_morph_alias_works_for_roles(): void
     {
-        $role = \Spatie\Permission\Models\Role::create(['name' => 'r_test', 'guard_name' => 'web']);
+        $role = Role::create(['name' => 'r_test', 'guard_name' => 'web']);
 
         $log = app(ActivityLogger::class)->record('roles.test', $role);
 
@@ -60,13 +62,13 @@ class AuditAndSessionTest extends DatabaseTestCase
         $a = User::factory()->create();
         $b = User::factory()->create();
         foreach ([['s1', $a->id], ['s2', $a->id], ['s3', $b->id]] as [$id, $uid]) {
-            \Illuminate\Support\Facades\DB::table('sessions')->insert([
+            DB::table('sessions')->insert([
                 'id' => $id, 'user_id' => $uid, 'ip_address' => '127.0.0.1', 'user_agent' => 't', 'payload' => '', 'last_activity' => time(),
             ]);
         }
 
         app(SessionRevoker::class)->revoke($a, 's1');
 
-        $this->assertEqualsCanonicalizing(['s1', 's3'], \Illuminate\Support\Facades\DB::table('sessions')->pluck('id')->all());
+        $this->assertEqualsCanonicalizing(['s1', 's3'], DB::table('sessions')->pluck('id')->all());
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature\Access;
 
 use App\Models\ActivityLog;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Tests\Concerns\CreatesAccessFixtures;
 use Tests\DatabaseTestCase;
 
@@ -120,7 +121,7 @@ class UserManagementTest extends DatabaseTestCase
 
         $this->actingAs($admin, 'web')->putJson("/api/v1/users/{$user->id}", ['password' => 'An0therStrongPass'])->assertOk();
 
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('An0therStrongPass', $user->fresh()->password));
+        $this->assertTrue(Hash::check('An0therStrongPass', $user->fresh()->password));
         $this->assertSame(0, $user->tokens()->count());
         $changes = ActivityLog::where('event', 'users.updated')->firstOrFail()->changes;
         $this->assertTrue($changes['credentials_changed']);

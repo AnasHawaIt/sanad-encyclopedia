@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AsnadAnalysisController;
+use App\Http\Controllers\Api\V1\AsnadComparisonController;
 use App\Http\Controllers\Api\V1\AsnadController;
 use App\Http\Controllers\Api\V1\AsnadNodeController;
+use App\Http\Controllers\Api\V1\AuditController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookController;
 use App\Http\Controllers\Api\V1\BookEditionController;
@@ -12,8 +14,10 @@ use App\Http\Controllers\Api\V1\LookupController;
 use App\Http\Controllers\Api\V1\LookupSetController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PersonController;
+use App\Http\Controllers\Api\V1\PersonMergeController;
 use App\Http\Controllers\Api\V1\PersonTeacherController;
 use App\Http\Controllers\Api\V1\ReferenceController;
+use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SourceController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -119,6 +123,54 @@ Route::prefix('v1')->group(function () {
             Route::post('sources/{source}/restore', [SourceController::class, 'restore'])->whereNumber('source')->name('sources.restore');
         });
 
+        // ---- المرحلة 8: المراجعة والنشر والدمج والتدقيق ----
+
+        $types = ['persons' => 'person', 'books' => 'book', 'asnads' => 'asnad', 'ijazas' => 'ijaza'];
+        Route::middleware('can:records.view_unpublished')->group(function () use ($types) {
+            foreach ($types as $prefix => $type) {
+                Route::get("{$prefix}/{entity}/reviews", [ReviewController::class, 'history'])->defaults('type', $type)->whereNumber('entity')->name("{$prefix}.reviews.index");
+            }
+        });
+        Route::middleware('can:reviews.submit')->group(function () use ($types) {
+            foreach ($types as $prefix => $type) {
+                Route::post("{$prefix}/{entity}/submit", [ReviewController::class, 'transition'])->defaults('type', $type)->defaults('action', 'submit')->whereNumber('entity')->name("{$prefix}.review.submit");
+            }
+        });
+        Route::middleware('can:reviews.decide')->group(function () use ($types) {
+            Route::get('reviews/queue', [ReviewController::class, 'queue'])->name('reviews.queue');
+            foreach ($types as $prefix => $type) {
+                foreach (['approve' => 'approve', 'reject' => 'reject', 'send-back' => 'send_back'] as $path => $action) {
+                    Route::post("{$prefix}/{entity}/{$path}", [ReviewController::class, 'transition'])->defaults('type', $type)->defaults('action', $action)->whereNumber('entity')->name("{$prefix}.review.{$action}");
+                }
+            }
+        });
+        Route::middleware('can:publishing.publish')->group(function () use ($types) {
+            foreach ($types as $prefix => $type) {
+                foreach (['publish', 'unpublish'] as $action) {
+                    Route::post("{$prefix}/{entity}/{$action}", [ReviewController::class, 'transition'])->defaults('type', $type)->defaults('action', $action)->whereNumber('entity')->name("{$prefix}.review.{$action}");
+                }
+            }
+        });
+
+        Route::middleware('can:merges.view')->group(function () {
+            Route::get('merge-requests', [PersonMergeController::class, 'index'])->name('merges.index');
+            Route::get('merge-requests/{mergeRequest}', [PersonMergeController::class, 'show'])->whereNumber('mergeRequest')->name('merges.show');
+        });
+        Route::middleware('can:merges.request')->group(function () {
+            Route::post('merge-requests', [PersonMergeController::class, 'store'])->name('merges.store');
+            Route::delete('merge-requests/{mergeRequest}', [PersonMergeController::class, 'withdraw'])->whereNumber('mergeRequest')->name('merges.withdraw');
+        });
+        Route::middleware('can:merges.approve')->group(function () {
+            Route::post('merge-requests/{mergeRequest}/approve', [PersonMergeController::class, 'approve'])->whereNumber('mergeRequest')->name('merges.approve');
+            Route::post('merge-requests/{mergeRequest}/reject', [PersonMergeController::class, 'reject'])->whereNumber('mergeRequest')->name('merges.reject');
+        });
+        Route::post('merge-requests/{mergeRequest}/revert', [PersonMergeController::class, 'revert'])->whereNumber('mergeRequest')->middleware('can:merges.revert')->name('merges.revert');
+
+        Route::middleware('can:audit.view')->group(function () {
+            Route::get('audit', [AuditController::class, 'index'])->name('audit.index');
+            Route::get('audit/events', [AuditController::class, 'events'])->name('audit.events');
+        });
+
         // ---- المرحلة 5: الأسانيد والإجازات ----
 
         Route::middleware('can:lookups.view')->group(function () {
@@ -131,9 +183,15 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('can:asnads.view')->group(function () {
             Route::get('asnads', [AsnadController::class, 'index'])->name('asnads.index');
+            Route::get('asnads/compare', [AsnadComparisonController::class, 'compare'])->name('asnads.compare');
+            Route::get('asnads/tree', [AsnadComparisonController::class, 'tree'])->name('asnads.tree');
             Route::get('asnads/summary', [AsnadAnalysisController::class, 'summary'])->name('asnads.summary');
             Route::get('asnads/{asnad}', [AsnadController::class, 'show'])->whereNumber('asnad')->name('asnads.show');
             Route::get('asnads/{asnad}/counts', [AsnadAnalysisController::class, 'counts'])->whereNumber('asnad')->name('asnads.counts');
+        });
+        Route::middleware(['can:asnads.view', 'can:books.view'])->group(function () {
+            Route::get('books/{book}/asnads/compare', [AsnadComparisonController::class, 'bookCompare'])->whereNumber('book')->name('books.asnads.compare');
+            Route::get('books/{book}/asnads/tree', [AsnadComparisonController::class, 'bookTree'])->whereNumber('book')->name('books.asnads.tree');
         });
         Route::middleware('can:asnads.create')->group(function () {
             Route::post('asnads', [AsnadController::class, 'store'])->name('asnads.store');

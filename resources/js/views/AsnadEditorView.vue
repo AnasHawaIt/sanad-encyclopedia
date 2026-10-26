@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth';
 import CountsPanel from '@/components/asnad/CountsPanel.vue';
 import NodeRow from '@/components/asnad/NodeRow.vue';
 import PersonPicker from '@/components/asnad/PersonPicker.vue';
+import ReviewActions from '@/components/review/ReviewActions.vue';
 import SplitSuggestions from '@/components/asnad/SplitSuggestions.vue';
 
 const route = useRoute();
@@ -38,6 +39,18 @@ function adopt(data) {
     form.title = data.title ?? '';
     bounds.from = data.count_from_seq ?? '';
     bounds.to = data.count_to_seq ?? '';
+}
+
+async function reviewed(result) {
+    notice.value = `الحالة الآن: ${result.verification_status.label} / ${result.publication_status.label}.`;
+    if (result.warnings?.length) {
+        notice.value += ' ' + result.warnings.map((w) => w.message ?? w).join(' ');
+    }
+    try {
+        adopt(await asnadsApi.show(asnad.value.id));
+    } catch (e) {
+        error.value = errorMessage(e);
+    }
 }
 
 async function run(action, success = '') {
@@ -165,6 +178,20 @@ async function applySuggestions(items) {
             <p v-if="!editable" class="notice">عرض للقراءة فقط: لا تملك صلاحية تعديل الأسانيد.</p>
             <p v-if="error" class="error" role="alert">{{ error }}</p>
             <p v-if="notice" class="badge" role="status">{{ notice }}</p>
+
+            <section class="card" data-test="review-bar">
+                <h2>المراجعة والنشر</h2>
+                <p>
+                    التحقق: <span class="badge">{{ asnad.verification_status?.label }}</span>
+                    النشر: <span class="badge">{{ asnad.publication_status?.label }}</span>
+                </p>
+                <ReviewActions
+                    v-if="asnad.verification_status && asnad.publication_status"
+                    type="asnads" :id="asnad.id"
+                    :verification="asnad.verification_status.value" :publication="asnad.publication_status.value"
+                    @changed="reviewed"
+                />
+            </section>
 
             <div class="grid-2">
                 <div>

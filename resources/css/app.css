@@ -67,3 +67,12 @@ body {
 .def { color: var(--muted); font-size: .8rem; margin: 0 0 .5rem; }
 table.list { width: 100%; border-collapse: collapse; }
 table.list th, table.list td { text-align: right; padding: .5rem; border-bottom: 1px solid var(--line); }
+
+.tree-root, .tree-children { list-style: none; margin: 0; padding: 0; }
+.tree-children { margin-inline-start: 1.25rem; border-inline-start: 2px solid var(--copper-soft); padding-inline-start: .5rem; }
+.tree-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; padding: .15rem 0; }
+.tree-toggle { width: 1.4rem; height: 1.4rem; border: 1px solid var(--line); background: #fff; border-radius: .25rem; cursor: pointer; line-height: 1; }
+.tree-toggle.dot { border: 0; background: none; cursor: default; color: var(--copper); }
+.tree-name { font-weight: 700; color: var(--navy); }
+.tree-row.unresolved .tree-name, .tree-row.hidden .tree-name { color: var(--muted); font-weight: 400; }
+.tree-row .ends { color: var(--copper); }

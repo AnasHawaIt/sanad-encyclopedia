@@ -4,7 +4,6 @@ namespace Tests\Feature\Auth;
 
 use App\Models\ActivityLog;
 use App\Models\User;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\Concerns\CreatesAccessFixtures;
 use Tests\DatabaseTestCase;
 

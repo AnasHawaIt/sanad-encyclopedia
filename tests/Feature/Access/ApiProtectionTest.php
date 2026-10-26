@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Access;
 
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Services\Access\PermissionCatalog;
 use Illuminate\Support\Facades\Route;
 use Tests\Concerns\CreatesAccessFixtures;
 use Tests\DatabaseTestCase;
@@ -27,7 +29,7 @@ class ApiProtectionTest extends DatabaseTestCase
         foreach ($routes as $route) {
             $mw = $route->gatherMiddleware();
             $this->assertContains('auth:sanctum', $mw, $route->uri().' بلا مصادقة');
-            $this->assertContains(\App\Http\Middleware\EnsureUserIsActive::class, $mw, $route->uri().' بلا فحص التفعيل');
+            $this->assertContains(EnsureUserIsActive::class, $mw, $route->uri().' بلا فحص التفعيل');
         }
     }
 
@@ -41,7 +43,7 @@ class ApiProtectionTest extends DatabaseTestCase
             $can = collect($route->gatherMiddleware())->first(fn ($m) => is_string($m) && str_starts_with($m, 'can:'));
             $this->assertNotNull($can, $route->uri().' بلا صلاحية');
             $permission = substr($can, 4);
-            $this->assertContains($permission, app(\App\Services\Access\PermissionCatalog::class)->names(), "{$permission} غير موجودة في الكتالوج");
+            $this->assertContains($permission, app(PermissionCatalog::class)->names(), "{$permission} غير موجودة في الكتالوج");
         }
     }
 
