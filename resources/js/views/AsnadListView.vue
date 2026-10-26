@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { asnadsApi } from '@/api/asnads';
 import { errorMessage } from '@/api/errors';
 import { useAuthStore } from '@/stores/auth';
+import ExportMenu from '@/components/ExportMenu.vue';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -15,6 +16,7 @@ const selected = ref([]);
 function compareSelected() {
     router.push({ name: 'asnad-compare', query: { ids: selected.value.join(',') } });
 }
+const exportParams = computed(() => (selected.value.length ? { ids: selected.value } : { q: q.value || undefined }));
 const creating = reactive({ title: '', busy: false });
 
 async function load() {
@@ -79,6 +81,10 @@ onMounted(load);
                 <button type="button" class="btn copper" :disabled="selected.length < 2" data-test="compare-btn" @click="compareSelected">قارن المحدد ({{ selected.length }})</button>
                 <span class="meta">اختر سندين على الأقل (حتى 20).</span>
             </p>
+            <div v-if="items.length" style="margin-top: 0.75rem">
+                <ExportMenu kind="asnads" :params="exportParams" :formats="[['csv', 'CSV (سند لكل صف)'], ['csv_nodes', 'CSV (حلقة لكل صف)'], ['txt', 'نص مقروء'], ['json', 'JSON']]" />
+                <p class="meta">{{ selected.length ? `يُصدَّر المحدد (${selected.length}).` : 'بلا تحديد: يُصدَّر ما يطابق البحث الحالي.' }}</p>
+            </div>
         </section>
     </div>
 </template>

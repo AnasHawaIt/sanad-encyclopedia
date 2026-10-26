@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\AuditController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookController;
 use App\Http\Controllers\Api\V1\BookEditionController;
+use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\IjazaController;
 use App\Http\Controllers\Api\V1\LinkController;
 use App\Http\Controllers\Api\V1\LookupController;
@@ -165,6 +166,13 @@ Route::prefix('v1')->group(function () {
             Route::post('merge-requests/{mergeRequest}/reject', [PersonMergeController::class, 'reject'])->whereNumber('mergeRequest')->name('merges.reject');
         });
         Route::post('merge-requests/{mergeRequest}/revert', [PersonMergeController::class, 'revert'])->whereNumber('mergeRequest')->middleware('can:merges.revert')->name('merges.revert');
+
+        // التصدير (المرحلة 9): قراءة فقط، بقيد رؤية المستخدم، ويُسجَّل في التدقيق
+        Route::middleware('can:exports.create')->prefix('exports')->group(function () {
+            Route::get('asnads', [ExportController::class, 'asnads'])->name('exports.asnads');
+            Route::get('persons', [ExportController::class, 'persons'])->name('exports.persons');
+            Route::get('ijazas', [ExportController::class, 'ijazas'])->name('exports.ijazas');
+        });
 
         Route::middleware('can:audit.view')->group(function () {
             Route::get('audit', [AuditController::class, 'index'])->name('audit.index');
